@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Busit Balance Viewer</string>
+    <string name="edit_message">Enter a message</string>
+    <string name="button_send">Send</string>
+    <string name="error">Error</string>
+    <string name="no_nfc">Your device does not support NFC</string>
+</resources>
