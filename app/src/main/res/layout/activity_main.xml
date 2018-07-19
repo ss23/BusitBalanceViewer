@@ -25,7 +25,7 @@
         android:layout_marginEnd="32dp"
         android:layout_marginStart="32dp"
         android:maxLines="3"
-        android:text="Hold your Busit card to the device to read your balance"
+        android:text="@string/beforeScanText"
         android:textAlignment="center"
         android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"

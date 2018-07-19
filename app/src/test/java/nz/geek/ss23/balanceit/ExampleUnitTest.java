@@ -1,4 +1,4 @@
-package nz.geek.ss23.busitbalanceviewer;
+package nz.geek.ss23.balanceit;
 
 import org.junit.Test;
 
