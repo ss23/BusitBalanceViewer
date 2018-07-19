@@ -1,13 +1,16 @@
-package nz.geek.ss23.busitbalanceviewer;
+package nz.geek.ss23.balanceit;
 
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.PendingIntent;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
@@ -16,9 +19,12 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity {
     private NfcAdapter mAdapter;
+    private PendingIntent mPendingIntent;
+    private IntentFilter[] intentFiltersArray;
     private AlertDialog mDialog;
 
-    TextView balanceView;
+    private TextView balanceView;
+    private TextView cardPrompt;
 
     private byte[] key = new byte[] { (byte)0xff, (byte)0xff, (byte)0xff,
             (byte)0xff, (byte)0xff, (byte)0xff };
@@ -26,21 +32,57 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(nz.geek.ss23.busitbalanceviewer.R.layout.activity_main);
+
+        balanceView = (TextView)findViewById(nz.geek.ss23.busitbalanceviewer.R.id.balanceView);
+        cardPrompt = (TextView)findViewById(nz.geek.ss23.busitbalanceviewer.R.id.cardPrompt);
 
         mAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mAdapter == null) {
-            showMessage(R.string.error, R.string.no_nfc);
+            showMessage(nz.geek.ss23.busitbalanceviewer.R.string.error, nz.geek.ss23.busitbalanceviewer.R.string.no_nfc);
             finish();
             return;
         }
 
-        this.balanceView = (TextView)findViewById(R.id.balanceView);
-
         resolveIntent(getIntent());
 
-        PendingIntent pendingIntent = PendingIntent.getActivity(
+        // Set up a filter to only receive the correct pending intent
+        intentFiltersArray = new IntentFilter[] {new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED), };
+        //intentFiltersArray = null;
+        mPendingIntent = PendingIntent.getActivity(
                 this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (!mAdapter.isEnabled()) {
+            showWirelessSettingsDialog();
+        }
+        //mAdapter.enableForegroundDispatch(this, mPendingIntent, intentFiltersArray, null);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        //mAdapter.disableForegroundDispatch(this);
+    }
+
+    private void showWirelessSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setMessage(nz.geek.ss23.busitbalanceviewer.R.string.nfc_disabled);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialogInterface, int i) {
+                Intent intent = new Intent(Settings.ACTION_WIRELESS_SETTINGS);
+                startActivity(intent);
+            }
+        });
+        builder.setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialogInterface, int i) {
+                finish();
+            }
+        });
+        builder.create().show();
     }
 
     private void showMessage(int title, int message) {
@@ -62,13 +104,16 @@ public class MainActivity extends Activity {
                 tag.connect();
 
                 // Authenticate to the card in the sector we'll be reading from
-                if (!tag.authenticateSectorWithKeyA(2, this.key)) {
+                if (!tag.authenticateSectorWithKeyA(2, key)) {
                     Log.d("AUTH", "Authentication failed. Not Busit?");
-                    Toast.makeText(getApplicationContext(), "Invalid card detected.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Invalid card detected.", Toast.LENGTH_LONG).show();
                     return;
                 } else {
                     Toast.makeText(getApplicationContext(), "Reading card...", Toast.LENGTH_SHORT).show();
                 }
+
+                // Hide our "Put your card up" prompt if we get here
+                cardPrompt.setVisibility(View.INVISIBLE);
 
                 // Read out the bytes we require (sector 2, block 1)
                 byte[] blockData = tag.readBlock(tag.sectorToBlock(2) + 1);
@@ -83,8 +128,8 @@ public class MainActivity extends Activity {
                 int cents = balance % 100;
                 int dollars = balance / 100;
 
-                this.balanceView.setText(String.format("$%d.%02d", dollars, cents));
-                this.balanceView.setVisibility(View.VISIBLE);
+                balanceView.setText(String.format("$%d.%02d", dollars, cents));
+                balanceView.setVisibility(View.VISIBLE);
 
                 //Toast.makeText(getApplicationContext(), String.format("Balance: $%d.%02d", dollars, cents), Toast.LENGTH_SHORT).show();
 
@@ -137,10 +182,13 @@ public class MainActivity extends Activity {
             Toast.makeText(getApplicationContext(), "Unspecified error", Toast.LENGTH_SHORT).show();
             Log.i("ERROR", e.toString());
         }
+
+        mPendingIntent = null;
     }
 
     @Override
     public void onNewIntent(Intent intent) {
+        Log.i("DEBUG", "Intent received");
         setIntent(intent);
         resolveIntent(intent);
     }

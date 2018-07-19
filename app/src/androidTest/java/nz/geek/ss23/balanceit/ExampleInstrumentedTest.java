@@ -1,4 +1,4 @@
-package nz.geek.ss23.busitbalanceviewer;
+package nz.geek.ss23.balanceit;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
