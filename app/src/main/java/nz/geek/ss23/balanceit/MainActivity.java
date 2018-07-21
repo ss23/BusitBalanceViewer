@@ -9,6 +9,8 @@ import android.content.IntentFilter;
 import android.nfc.NfcAdapter;
 import android.nfc.Tag;
 import android.nfc.tech.MifareClassic;
+import android.nfc.tech.NdefFormatable;
+import android.nfc.tech.NfcA;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
@@ -21,7 +23,9 @@ import java.util.Locale;
 public class MainActivity extends Activity {
     private NfcAdapter mAdapter;
     private PendingIntent mPendingIntent;
-    private IntentFilter[] intentFiltersArray;
+    private IntentFilter[] mFilters;
+    private String[][] mTechLists;
+
     private AlertDialog mDialog;
 
     private TextView balanceView;
@@ -55,11 +59,21 @@ public class MainActivity extends Activity {
             resolveIntent(getIntent());
         }
 
-        // Set up a filter to only receive the correct pending intent
-        intentFiltersArray = new IntentFilter[] {new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED), };
+        // Create a generic PendingIntent that will be deliver to this activity. The NFC stack
+        // will fill in the intent with the details of the discovered tag before delivering to
+        // this activity.
         mPendingIntent = PendingIntent.getActivity(
                 this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
 
+        // Set up a filter to only receive the correct pending intent
+        mFilters = new IntentFilter[] {new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED), };
+
+        // Setup a tech list for Busit tags
+        mTechLists = new String[][] {
+                new String[] { MifareClassic.class.getName() },
+                new String[] { NdefFormatable.class.getName() },
+                new String[] { NfcA.class.getName() },
+        };
     }
 
     @Override
@@ -68,13 +82,13 @@ public class MainActivity extends Activity {
         if (!mAdapter.isEnabled()) {
             showWirelessSettingsDialog();
         }
-        //mAdapter.enableForegroundDispatch(this, mPendingIntent, intentFiltersArray, null);
+        mAdapter.enableForegroundDispatch(this, mPendingIntent, mFilters, mTechLists);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        //mAdapter.disableForegroundDispatch(this);
+        mAdapter.disableForegroundDispatch(this);
     }
 
     private void showWirelessSettingsDialog() {
