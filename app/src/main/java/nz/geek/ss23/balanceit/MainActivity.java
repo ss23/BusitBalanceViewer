@@ -27,6 +27,10 @@ public class MainActivity extends Activity {
     private TextView balanceView;
     private TextView cardPrompt;
 
+    private int BalanceDollars;
+    private int BalanceCents;
+    private boolean BalanceRead = false;
+
     private final byte[] key = new byte[] { (byte)0xff, (byte)0xff, (byte)0xff,
             (byte)0xff, (byte)0xff, (byte)0xff };
 
@@ -51,6 +55,7 @@ public class MainActivity extends Activity {
         intentFiltersArray = new IntentFilter[] {new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED), };
         mPendingIntent = PendingIntent.getActivity(
                 this, 0, new Intent(this, getClass()).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP), 0);
+
     }
 
     @Override
@@ -125,11 +130,11 @@ public class MainActivity extends Activity {
 
                 Log.i("BIT", String.format("9: 0x%x - 10: 0x%x", blockData[9], blockData[10]));
 
-                int cents = balance % 100;
-                int dollars = balance / 100;
+                BalanceCents = balance % 100;
+                BalanceDollars = balance / 100;
+                BalanceRead = true;
 
-                balanceView.setText(String.format(Locale.US, "$%d.%02d", dollars, cents));
-                balanceView.setVisibility(View.VISIBLE);
+                updateBalance();
 
                 //Toast.makeText(getApplicationContext(), String.format("Balance: $%d.%02d", dollars, cents), Toast.LENGTH_SHORT).show();
 
@@ -189,5 +194,38 @@ public class MainActivity extends Activity {
         //Log.i("BIT", "Intent received");
         setIntent(intent);
         resolveIntent(intent);
+    }
+
+    protected void updateBalance() {
+        if (!BalanceRead) {
+            cardPrompt.setVisibility(View.VISIBLE);
+            balanceView.setVisibility(View.INVISIBLE);
+        } else {
+            cardPrompt.setVisibility(View.INVISIBLE);
+            balanceView.setText(String.format(Locale.US, "$%d.%02d", BalanceDollars, BalanceCents));
+            balanceView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // invoked when the activity may be temporarily destroyed, save the instance state here
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putInt("BalanceDollars", BalanceDollars);
+        outState.putInt("BalanceCents", BalanceCents);
+        outState.putBoolean("BalanceRead", BalanceRead);
+
+        // call superclass to save any view hierarchy
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        BalanceDollars = savedInstanceState.getInt("BalanceDollars");
+        BalanceCents = savedInstanceState.getInt("BalanceCents");
+        BalanceRead = savedInstanceState.getBoolean("BalanceRead");
+
+        updateBalance();
+
+        super.onRestoreInstanceState(savedInstanceState);
     }
 }
