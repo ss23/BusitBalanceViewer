@@ -37,19 +37,23 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(nz.geek.ss23.balanceit.R.layout.activity_main);
+        setContentView(R.layout.activity_main);
 
-        balanceView = findViewById(nz.geek.ss23.balanceit.R.id.balanceView);
-        cardPrompt = findViewById(nz.geek.ss23.balanceit.R.id.cardPrompt);
+        balanceView = findViewById(R.id.balanceView);
+        cardPrompt = findViewById(R.id.cardPrompt);
 
         mAdapter = NfcAdapter.getDefaultAdapter(this);
         if (mAdapter == null) {
-            showMessage(nz.geek.ss23.balanceit.R.string.error, nz.geek.ss23.balanceit.R.string.no_nfc);
+            showMessage(R.string.error, R.string.no_nfc);
             finish();
             return;
         }
 
-        resolveIntent(getIntent());
+        // Only attempt to resolve the intent if we've just been launched
+        // This prevents an old intent behind handled on screen orientation change
+        if (savedInstanceState == null) {
+            resolveIntent(getIntent());
+        }
 
         // Set up a filter to only receive the correct pending intent
         intentFiltersArray = new IntentFilter[] {new IntentFilter(NfcAdapter.ACTION_TECH_DISCOVERED), };
@@ -191,8 +195,8 @@ public class MainActivity extends Activity {
 
     @Override
     public void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
         //Log.i("BIT", "Intent received");
-        setIntent(intent);
         resolveIntent(intent);
     }
 
